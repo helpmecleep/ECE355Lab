@@ -44,11 +44,6 @@
 /* Definitions of registers and their bits are
    given in system/include/cmsis/stm32f051x8.h */
 
-unsigned int count = 0;
-float period = 0;
-float frequency = 0;
-unsigned int res = 0;
-
 
 /* Clock prescaler for TIM2 timer: no prescaling */
 #define myTIM2_PRESCALER ((uint16_t)0x0000)
@@ -239,6 +234,11 @@ unsigned char Characters[][8] = {
 // NOTE: You'll need at least one global variable
 // (say, timerTriggered = 0 or 1) to indicate
 // whether TIM2 has started counting or not.
+unsigned int count = 0;
+float period = 0;
+float frequency = 0;
+unsigned int res = 0;
+unsigned int inSig = 0;
 
 
 /*** Call this function to boost the STM32F0xx clock to 48 MHz ***/
@@ -547,10 +547,36 @@ void TIM2_IRQHandler()
 
 void EXTI0_1_IRQHandler()
 {
-	//trace_printf("Button Press");
+	/* Check if EXTI0 interrupt pending flag is indeed set */
+	if((EXTI->PR & EXTI_PR_PR1){
+		if(TIM2->CR1 & TIM_CR1_CEN){
+			TIM2->CNT = 0;
+			TIM2->CR1 |= TIM_CR1_CEN;
+		}
+		else{
+			TIM2->CR1 &= ~TIM_CR1_CEN;
+			count = TIM2->CNT;
+			period = (float)count/(float)SystemCoreClock;
+		}
+		EXTI->PR |= EXTI_PR_PR1;
+	})
+	/* Check if EXTI0 interrupt pending flag is indeed set */
 	if ((EXTI->PR & EXTI_PR_PR0) != 0){
 		if((GPIOA->IDR & GPIO_IDR_0) != 0){
-			trace_printf("Button detected");
+			if (inSig == 0){
+				inSig = 1;
+				//GPIOC->IMR = EXTI_IMR_2; /*Disable EXTI0 and enable EXTI2*/
+				GPIOC -> IMR &= ~(EXTI_IMR_MR0 | EXTI_IMR_MR1); /*Disable EXTI0 and EXTI1*/
+				GPIOC -> IMR |= EXTI_IMR_MR2; /*Enable EXTI2*/
+				trace_printf("Function generator enabled\n");
+			}
+			else{
+				inSig = 0;
+				GPIOC -> IMR &= ~EXTI_IMR_MR2; /*Disable EXTI2*/
+				GPIOC -> IMR |= (EXTI_IMR_MR1 | EXTI_IMR_MR0); /*Enable EXTI1 and EXTI0*/
+				//GPIOC->IMR = ((EXTI->IMR & ~ EXTI_IMR_MR2) | (EXTI_IMR_1 | EXTI_IMR_0)); /*Disable EXTI2 and enable EXTI1*/
+				trace_printf("NE555 Enabled\n");
+			}
 		}
 		EXTI->PR |= EXTI_PR_PR0;
 	}

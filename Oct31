@@ -1,8 +1,4 @@
-// Worked on EXTI0,1 and PA0; October 20th
-// Worked on EXTI0,1, GPIOC, and PA0; October 30th
-// Worked on placing the oled template; October 30th
-// ADC and DAC
-// PA0 now works
+// User Button, ADC and DAC works
 // This file is part of the GNU ARM Eclipse distribution.
 // Copyright (c) 2014 Liviu Ionescu.
 //
@@ -294,18 +290,20 @@ main(int argc, char* argv[])
 	myEXTI_Init();		/* Initialize EXTI */
 
 	trace_printf("This is ADC and DAC part of Project...\n");
-	trace_printf("Value: %u \n", res);
 
 	myADC_Init();                /* Initialize ADC */
+
 
 	/* CR[2] = 1 */
 	ADC1 -> CR |= ADC_CR_ADSTART;
 
 	/* Wait for ISR[2] = 1 */
-	while (ADC1 -> ISR[2] != 1){};
+	while (!(ADC1->ISR & ADC_ISR_EOC));
 
 	/* Value = ADC1-> DR */
 	res = ADC1 -> DR;
+
+	trace_printf("Value: %u \n", (unsigned int)res);
 
 	/* Enable clock for DAC */
 	RCC-> APB1ENR |=RCC_APB1ENR_DACEN;
@@ -500,34 +498,37 @@ void myTIM2_Init()
 
 void myADC_Init(){
 
-/* STEP 1: Enable clock for GPIOA peripheral */
-// Relevant register: RCC->AHBENR
-RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
+	/* STEP 1: Enable clock for GPIOA peripheral */
+	// Relevant register: RCC->AHBENR
+	RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
 
-/* Configure PA5 as analog */
-// Relevant register: GPIOA->MODER
-/* Configure PA4 as analog */
-// Relevant register: GPIOA->MODER
-//Doing this in myGPIOA_Init()
+	/* Configure PA5 as analog */
+	// Relevant register: GPIOA->MODER
+	/* Configure PA4 as analog */
+	// Relevant register: GPIOA->MODER
+	//Doing this in myGPIOA_Init()
 
-/* STEP 2: ADC1 -> CFGR1 Configuration Register */
-ADC1 -> CFGR1 |= (ADC_CFGR1_RES | ADC_CFGR1_ALIGN | ADC_CFGR1_OVRMOD | ADC_CFGR1_CONT);
-
-
-/* STEP 3: Channel Select (enable bit 5 to 1) ADC1 -> CHSELR[5]=1 */
-ADC1 -> CHSELR |= ADC_CHSELR_CHSEL5;
+	/* STEP 2: ADC1 -> CFGR1 Configuration Register */
+	ADC1 -> CFGR1 |= (ADC_CFGR1_RES | ADC_CFGR1_ALIGN | ADC_CFGR1_OVRMOD | ADC_CFGR1_CONT);
 
 
-/* STEP 4: ADC1 -> SMPR Sampling Time Register */
-ADC1 -> SMPR |= ADC_SMPR_SMP;
+	/* STEP 3: Channel Select (enable bit 5 to 1) ADC1 -> CHSELR[5]=1 */
+	ADC1 -> CHSELR |= ADC_CHSELR_CHSEL5;
 
 
-/* STEP 5: ADC1 -> CR Control Register */
-ADC1 -> CR |= ADC_CR_ADEN;
+	/* STEP 4: ADC1 -> SMPR Sampling Time Register */
+	ADC1 -> SMPR |= ADC_SMPR_SMP;
 
 
-/* STEP 6: Wait loop for ISR[0] = 1 Interrupt and Status Register (Check for ADC Ready flag) */
-while (ADC1 -> ISR[0] != 1){};
+	/* STEP 5: ADC1 -> CR Control Register */
+	ADC1 -> CR |= ADC_CR_ADEN;
+
+
+
+	/* STEP 6: Wait loop for ISR[0] = 1 Interrupt and Status Register (Check for ADC Ready flag) */
+	while (!(ADC1->ISR & ADC_ISR_ADRDY));
+
+	//ADC1->CR |= ADC_CR_ADSTART;
 
 }
 

@@ -1,4 +1,12 @@
-// User Button, ADC and DAC works
+// Worked on EXTI0,1 and PA0; October 20th
+// Worked on EXTI0,1, GPIOC, and PA0; October 30th
+// Worked on placing the oled template; October 30th
+// PA0 now works
+//ADC and DAC work
+//PA0 works
+//Fixes to implement
+//ADC DAC Connection
+//PA0 Bounce fix
 // This file is part of the GNU ARM Eclipse distribution.
 // Copyright (c) 2014 Liviu Ionescu.
 //
@@ -456,8 +464,10 @@ void myGPIOA_Init()
 	// Relevant register: RCC->AHBENR
 	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
 
-	/* Configure PA5 and PA4 as analog */
+	/*Configure PA0 and PA2 as input*/
+	/* Configure PA5 and PA4 as analog*/
 	// Relevant register: GPIOA->MODER
+	GPIOA->MODER &= ~(GPIO_MODER_MODER0 | GPIO_MODER_MODER2);
 	GPIOA->MODER |= (GPIO_MODER_MODER5 | GPIO_MODER_MODER4);
 
 
@@ -604,7 +614,7 @@ void EXTI0_1_IRQHandler()
 		if((GPIOA->IDR & GPIO_IDR_0) != 0){
 			if (inSig == 0){
 				inSig = 1;
-				EXTI-> IMR &= ~(EXTI_IMR_MR1); /*Disable EXTI0 and EXTI1*/
+				EXTI-> IMR &= ~(EXTI_IMR_MR1); /*Disable and EXTI1*/
 				EXTI-> IMR |= EXTI_IMR_MR2; /*Enable EXTI2*/
 				trace_printf("Function generator enabled\n");
 			}

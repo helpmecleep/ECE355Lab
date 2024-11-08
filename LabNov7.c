@@ -2,7 +2,7 @@
 // Worked on EXTI0,1, GPIOC, and PA0; October 30th
 // Worked on placing the oled template; October 30th
 // Worked on EXTI1, PA1, and NE555 timer; November 7th
-// 
+//
 // PA0 now works
 //ADC and DAC work
 //PA0 works
@@ -564,7 +564,7 @@ void myEXTI_Init()
 
 	/* Unmask interrupts from EXTI2, EXTI1, and EXTI0 line */
 	// Relevant register: EXTI->IMR
-	EXTI-> IMR |= (EXTI_IMR_MR0 | EXTI_IMR_MR2 | EXTI_IMR_MR1);
+	EXTI-> IMR |= (EXTI_IMR_MR0 | EXTI_IMR_MR2);
 
 	/* Assign EXTI2 interrupt priority = 0 in NVIC */
 	// Relevant register: NVIC->IP[2], or use NVIC_SetPriority
@@ -628,7 +628,6 @@ void EXTI0_1_IRQHandler()
 	/* Check if EXTI0 interrupt pending flag is indeed set */
 	if ((EXTI->PR & EXTI_PR_PR0) != 0){
 		/* IDR = Input Data Register - Check if button is pressed (PA0 = 1) */
-		if((GPIOA->IDR & GPIO_IDR_0) != 0){
 			if (inSig == 0){
 				inSig = 1;
 				EXTI-> IMR &= ~(EXTI_IMR_MR1); /*Disable and EXTI1*/
@@ -643,8 +642,6 @@ void EXTI0_1_IRQHandler()
 			}
 			/* Clear Pending Register for User Button by setting it to 1 */
 			EXTI->PR |= EXTI_PR_PR0;
-		}
-
 	}
 }
 
@@ -683,9 +680,9 @@ void EXTI2_3_IRQHandler()
             count = TIM2->CNT;
             period = (float)count/(float)SystemCoreClock;
             frequency = 1/period;
-           /* trace_printf("Count: %u\n", count);
+            trace_printf("Count: %u\n", count);
             trace_printf("Period: %u\n", (unsigned int)(period*1000000));
-            trace_printf("Frequency: %u\n", (unsigned int)frequency);*/
+            trace_printf("Frequency: %u\n", (unsigned int)frequency);
 
 		}
 		// 2. Clear EXTI2 interrupt pending flag (EXTI->PR).

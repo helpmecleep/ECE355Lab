@@ -14,12 +14,7 @@
 //worked on Olde CMD and Data
 //wokred on OLED config
 // worked on OLED config
-//NOV 13:
-// Saleh:
-// Worked on more LED
-// Implementing TIM3 delay
-// Fixed AFRL and ODR issues
-// more fixes needed for AFRL and ODR
+//
 // This file is part of the GNU ARM Eclipse distribution.
 // Copyright (c) 2014 Liviu Ionescu.
 //
@@ -319,7 +314,7 @@ main(int argc, char* argv[])
 	myEXTI_Init();		/* Initialize EXTI */
 	trace_printf("This is ADC and DAC part of Project...\n");
 	myADC_Init();                /* Initialize ADC */
-
+	//oled_config();
 
 	/* CR[2] = 1 */
 	ADC1 -> CR |= ADC_CR_ADSTART;
@@ -341,12 +336,14 @@ main(int argc, char* argv[])
 	/* Send this value to DAC */
 	DAC-> DHR12R1 = res;
 
+	while( 1 )
+	{
     GPIOB->ODR &= ~GPIO_ODR_1;
     TIM3_Delay(5);
 
     GPIOB->ODR |= GPIO_ODR_1;
     TIM3_Delay(5);
-
+	}
 
 
 	while (1)
@@ -734,9 +731,9 @@ void EXTI0_1_IRQHandler()
 			count = TIM2->CNT;
 			period = (float)count/(float)SystemCoreClock;
             frequency = 1/period;
-            trace_printf("Count: %u\n", count);
-            trace_printf("Period: %u\n", (unsigned int)(period*1000000));
-            trace_printf("Frequency: %u\n", (unsigned int)frequency);
+//            trace_printf("Count: %u\n", count);
+//            trace_printf("Period: %u\n", (unsigned int)(period*1000000));
+//            trace_printf("Frequency: %u\n", (unsigned int)frequency);
 
 		}
 		EXTI->PR |= EXTI_PR_PR1;
@@ -750,13 +747,13 @@ void EXTI0_1_IRQHandler()
 				inSig = 1;
 				EXTI-> IMR &= ~(EXTI_IMR_MR1); /*Disable and EXTI1*/
 				EXTI-> IMR |= EXTI_IMR_MR2; /*Enable EXTI2*/
-				trace_printf("Function generator enabled\n");
+//				trace_printf("Function generator enabled\n");
 			}
 			else{
 				inSig = 0;
 				EXTI-> IMR &= ~(EXTI_IMR_MR2); /*Disable EXTI2*/
 				EXTI-> IMR |= EXTI_IMR_MR1; /*Enable EXTI1*/
-				trace_printf("NE555 Enabled\n");
+//				trace_printf("NE555 Enabled\n");
 			}
 			/* Clear Pending Register for User Button by setting it to 1 */
 			EXTI->PR |= EXTI_PR_PR0;

@@ -2,7 +2,7 @@
 // Worked on EXTI0,1, GPIOC, and PA0; October 30th
 // Worked on placing the oled template; October 30th
 // Worked on EXTI1, PA1, and NE555 timer; November 7th
-// Saleh: 
+// Saleh:
 // PA0 now works
 //ADC and DAC work
 //PA0 works
@@ -14,7 +14,12 @@
 //worked on Olde CMD and Data
 //wokred on OLED config
 // worked on OLED config
-//
+//NOV 13:
+// Saleh:
+// Worked on more LED
+// Implementing TIM3 delay
+// Fixed AFRL and ODR issues
+// more fixes needed for AFRL and ODR
 // This file is part of the GNU ARM Eclipse distribution.
 // Copyright (c) 2014 Liviu Ionescu.
 //
@@ -64,9 +69,9 @@
 #define myTIM2_PERIOD ((uint32_t)0xFFFFFFFF)
 
 /* Clock prescaler for TIM3 timer: no prescaling */
-#define myTIM2_PRESCALER ((uint16_t)0x0000)
+#define myTIM3_PRESCALER ((uint16_t)0x0000)
 /* Maximum possible setting for overflow */
-#define myTIM2_PERIOD ((uint32_t)0xFFFFFFFF)
+#define myTIM3_PERIOD ((uint32_t)0xFFFFFFFF)
 
 void myGPIOA_Init(void);
 void myGPIOB_Init(void);
@@ -310,6 +315,7 @@ main(int argc, char* argv[])
 	myGPIOA_Init();		/* Initialize I/O port PA */
     myGPIOB_Init();		/* Initialize I/O port PB */
 	myTIM2_Init();		/* Initialize timer TIM2 */
+	myTIM3_Init();		/* Initialize timer TIM3 */
 	myEXTI_Init();		/* Initialize EXTI */
 	trace_printf("This is ADC and DAC part of Project...\n");
 	myADC_Init();                /* Initialize ADC */
@@ -334,6 +340,14 @@ main(int argc, char* argv[])
 
 	/* Send this value to DAC */
 	DAC-> DHR12R1 = res;
+
+    GPIOB->ODR &= ~GPIO_ODR_1;
+    TIM3_Delay(5);
+
+    GPIOB->ODR |= GPIO_ODR_1;
+    TIM3_Delay(5);
+
+
 
 	while (1)
 	{
@@ -374,10 +388,10 @@ void refresh_OLED( void )
     */
 
     //set TIM3 to 48MHz
-    TIM3->CNT= systemCoreClock;
+    TIM3->CNT= 48000000;
     //start timer
     TIM3->CR1 |= TIM_CR1_CEN;
-    // wain until timer reaches zero
+    // wait until timer reaches zero
     while(TIM3->CNT != 0);
     //stop timer
     TIM3->CR1 |= TIM_CR1_UDIS;
@@ -464,9 +478,9 @@ void oled_config( void )
     */
 
     // /*Isha's solution*/
-    // GPIOB->ODR &= ~GPIO_ODR_4; // Set PB4 (RES#) to 0 (reset) 
-    // delay_ms(5); // Wait a few milliseconds 
-    // GPIOB->ODR |= GPIO_ODR_4; // Set PB4 (RES#) to 1 (end reset) 
+    // GPIOB->ODR &= ~GPIO_ODR_4; // Set PB4 (RES#) to 0 (reset)
+    // delay_ms(5); // Wait a few milliseconds
+    // GPIOB->ODR |= GPIO_ODR_4; // Set PB4 (RES#) to 1 (end reset)
     // delay_ms(5); // Wait a few milliseconds after reset
 
     /*Saleh's Solution*/
@@ -543,11 +557,11 @@ void myGPIOB_Init(){
 
 	/*Configure PB4-7 as output, PB3 and 5 as AF0*/
 	// Relevant register: GPIOB->MODER
-    GPIOB->MODER |= (GPIO_MODER_MODER3_1 | GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_1 | GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0);
-    GPIOB->AFRL &= ~(GPIO_AFRL_AFRL3 | GPIO_AFRL_AFRL5);
+    GPIOB->MODER |= (GPIO_MODER_MODER3_1 | GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_1 | GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0 | GPIO_MODER_MODER1_0);
+    GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL3 | GPIO_AFRL_AFRL5);
 
 	/*Ensure no pull-up/pull-down for PB3-7*/
-	GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR3 | GPIO_PUPDR_PUPDR4 | GPIO_PUPDR_PUPDR5 | GPIO_PUPDR_PUPDR6 | GPIO_PUPDR_PUPDR7);
+	GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR1 | GPIO_PUPDR_PUPDR3 | GPIO_PUPDR_PUPDR4 | GPIO_PUPDR_PUPDR5 | GPIO_PUPDR_PUPDR6 | GPIO_PUPDR_PUPDR7);
     // GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR4);
 	// GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR5);
     // GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR6);
@@ -563,7 +577,7 @@ void myTIM2_Init()
 	 * enable update events, interrupt on overflow only */
 	// Relevant register: TIM2->CR1
 	TIM2->CR1 = ((uint16_t)0x008C);
-	/* Set clock prescaler value */
+	/* Set clock pre-scaler value */
 	TIM2->PSC = myTIM2_PRESCALER;
 	/* Set auto-reloaded delay */
 	TIM2->ARR = myTIM2_PERIOD;
@@ -599,10 +613,10 @@ void myTIM3_Init(){
 	TIM3->EGR = ((uint16_t)0x0001);
 	/* Assign TIM3 interrupt priority = 0 in NVIC */
 	// Relevant register: NVIC->IP[3], or use NVIC_SetPriority
-	NVIC_SetPriority(TIM3_IRQn, 0);
+	//NVIC_SetPriority(TIM3_IRQn, 0);
 	/* Enable TIM3 interrupts in NVIC */
 	// Relevant register: NVIC->ISER[0], or use NVIC_EnableIRQ
-	NVIC_EnableIRQ(TIM3_IRQn);
+	//NVIC_EnableIRQ(TIM3_IRQn);
 	/* Enable update interrupt generation */
 	// Relevant register: TIM3->DIER
 	TIM3->DIER |= TIM_DIER_UIE;
@@ -613,7 +627,8 @@ void TIM3_Delay(uint32_t delay){
     TIM3->CNT = delay;
     TIM3->CR1 |= TIM_CR1_CEN;
     while(TIM3->CNT != 0);
-    TIM3->CR1 |= TIM_CR1_UDIS;
+    //TIM3->CR1 |= TIM_CR1_UDIS;
+    TIM3->CR1 &= ~TIM_CR1_CEN;
 }
 
 void myADC_Init(){

@@ -302,8 +302,7 @@ void SystemClock48MHz( void )
 /*****************************************************************/
 
 
-int
-main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
 
 	SystemClock48MHz();
@@ -344,6 +343,7 @@ main(int argc, char* argv[])
 		/* Send this value to DAC */
 		res = (adcVal/ADC_SCALE)*5000;
 		DAC-> DHR12R1 = adcVal;
+        refresh_OLED();
 	}
 
 	return 0;

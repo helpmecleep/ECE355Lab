@@ -552,6 +552,7 @@ void myGPIOB_Init(){
     /* Enable clock for GPIOB peripheral */
 	// Relevant register: RCC->AHBENR
 	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
+    RCC->AHBENR |= RCC_APB2ENR_SPI1EN;
 
 	/*Configure PB4-7 as output, PB3 and 5 as AF0*/
 	// Relevant register: GPIOB->MODER
@@ -725,9 +726,9 @@ void EXTI0_1_IRQHandler()
 			count = TIM2->CNT;
 			period = (float)count/(float)SystemCoreClock;
             frequency = 1/period;
-/*            trace_printf("Count: %u\n", count);
+            trace_printf("Count: %u\n", count);
             trace_printf("Period: %u\n", (unsigned int)(period*1000000));
-            trace_printf("Frequency: %u\n", (unsigned int)frequency);*/
+            trace_printf("Frequency: %u\n", (unsigned int)frequency);
 
 		}
 		EXTI->PR |= EXTI_PR_PR1;

@@ -725,9 +725,9 @@ void EXTI0_1_IRQHandler()
 			count = TIM2->CNT;
 			period = (float)count/(float)SystemCoreClock;
             frequency = 1/period;
-            trace_printf("Count: %u\n", count);
+/*            trace_printf("Count: %u\n", count);
             trace_printf("Period: %u\n", (unsigned int)(period*1000000));
-            trace_printf("Frequency: %u\n", (unsigned int)frequency);
+            trace_printf("Frequency: %u\n", (unsigned int)frequency);*/
 
 		}
 		EXTI->PR |= EXTI_PR_PR1;

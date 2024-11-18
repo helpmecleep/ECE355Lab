@@ -1,3 +1,4 @@
+
 // Worked on EXTI0,1 and PA0; October 20th
 // Worked on EXTI0,1, GPIOC, and PA0; October 30th
 // Worked on placing the oled template; October 30th
@@ -67,6 +68,8 @@
 #define myTIM3_PRESCALER ((uint16_t)0x0000)
 /* Maximum possible setting for overflow */
 #define myTIM3_PERIOD ((uint32_t)0xFFFFFFFF)
+/*ADC Scale*/
+#define ADC_SCALE 4095
 
 void myGPIOA_Init(void);
 void myGPIOB_Init(void);
@@ -257,6 +260,7 @@ unsigned int count = 0;
 float period = 0;
 float frequency = 0;
 float res = 0;
+float adcVal = 0;
 unsigned int inSig = 0; // Flags that tells user button is pressed
 
 
@@ -314,30 +318,32 @@ main(int argc, char* argv[])
 	myEXTI_Init();		/* Initialize EXTI */
 	trace_printf("This is ADC and DAC part of Project...\n");
 	myADC_Init();                /* Initialize ADC */
-	//oled_config();
+	oled_config();
 
-	/* CR[2] = 1 */
-	ADC1 -> CR |= ADC_CR_ADSTART;
 
-	/* Wait for ISR[2] = 1 */
-	while (!(ADC1->ISR & ADC_ISR_EOC));
 
-	/* Value = ADC1-> DR */
-	res = ADC1 -> DR;
-
-	trace_printf("Value: %u \n", (unsigned int)res);
-
-	/* Enable clock for DAC */
-	RCC-> APB1ENR |=RCC_APB1ENR_DACEN;
-
-	/* Configure DAC Control Register */
-	DAC->CR |= DAC_CR_EN1 | DAC_CR_BOFF1 | DAC_CR_TEN1;
-
-	/* Send this value to DAC */
-	DAC-> DHR12R1 = res;
 	while (1)
 	{
-		// Nothing is going on here...
+		/* CR[2] = 1 */
+		ADC1 -> CR |= ADC_CR_ADSTART;
+
+		/* Wait for ISR[2] = 1 */
+		while (!(ADC1->ISR & ADC_ISR_EOC));
+
+		/* Value = ADC1-> DR */
+		adcVal = ADC1 -> DR;
+
+		trace_printf("Value: %u \n", (unsigned int)res);
+
+		/* Enable clock for DAC */
+		RCC-> APB1ENR |=RCC_APB1ENR_DACEN;
+
+		/* Configure DAC Control Register */
+		DAC->CR |= DAC_CR_EN1 | DAC_CR_BOFF1 | DAC_CR_TEN1;
+
+		/* Send this value to DAC */
+		res = (adcVal/ADC_SCALE)*5000;
+		DAC-> DHR12R1 = adcVal;
 	}
 
 	return 0;
@@ -383,9 +389,9 @@ void refresh_OLED( void )
             break;
         }
         for (int j = 0; j < 8; j++){
-            oled_Write_Data(Characters[Buffer[i][j]]);
+            oled_Write_Data(Characters[Buffer[i]][j]);
         }
-    }   
+    }
 
 	/* Wait for ~100 ms (for example) to get ~10 frames/sec refresh rate
        - You should use TIM3 to implement this delay (e.g., via polling)
@@ -549,11 +555,11 @@ void myGPIOB_Init(){
 
 	/*Configure PB4-7 as output, PB3 and 5 as AF0*/
 	// Relevant register: GPIOB->MODER
-    GPIOB->MODER |= (GPIO_MODER_MODER3_1 | GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_1 | GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0 | GPIO_MODER_MODER1_0);
+    GPIOB->MODER |= (GPIO_MODER_MODER3_1 | GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_1 | GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0);
     GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL3 | GPIO_AFRL_AFRL5);
 
 	/*Ensure no pull-up/pull-down for PB3-7*/
-	GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR1 | GPIO_PUPDR_PUPDR3 | GPIO_PUPDR_PUPDR4 | GPIO_PUPDR_PUPDR5 | GPIO_PUPDR_PUPDR6 | GPIO_PUPDR_PUPDR7);
+	GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR3 | GPIO_PUPDR_PUPDR4 | GPIO_PUPDR_PUPDR5 | GPIO_PUPDR_PUPDR6 | GPIO_PUPDR_PUPDR7);
     // GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR4);
 	// GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR5);
     // GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR6);
@@ -719,9 +725,9 @@ void EXTI0_1_IRQHandler()
 			count = TIM2->CNT;
 			period = (float)count/(float)SystemCoreClock;
             frequency = 1/period;
-//            trace_printf("Count: %u\n", count);
-//            trace_printf("Period: %u\n", (unsigned int)(period*1000000));
-//            trace_printf("Frequency: %u\n", (unsigned int)frequency);
+            trace_printf("Count: %u\n", count);
+            trace_printf("Period: %u\n", (unsigned int)(period*1000000));
+            trace_printf("Frequency: %u\n", (unsigned int)frequency);
 
 		}
 		EXTI->PR |= EXTI_PR_PR1;
@@ -735,13 +741,13 @@ void EXTI0_1_IRQHandler()
 				inSig = 1;
 				EXTI-> IMR &= ~(EXTI_IMR_MR1); /*Disable and EXTI1*/
 				EXTI-> IMR |= EXTI_IMR_MR2; /*Enable EXTI2*/
-//				trace_printf("Function generator enabled\n");
+				trace_printf("Function generator enabled\n");
 			}
 			else{
 				inSig = 0;
 				EXTI-> IMR &= ~(EXTI_IMR_MR2); /*Disable EXTI2*/
 				EXTI-> IMR |= EXTI_IMR_MR1; /*Enable EXTI1*/
-//				trace_printf("NE555 Enabled\n");
+				trace_printf("NE555 Enabled\n");
 			}
 			/* Clear Pending Register for User Button by setting it to 1 */
 			EXTI->PR |= EXTI_PR_PR0;

@@ -1,3 +1,4 @@
+
 // Worked on EXTI0,1 and PA0; October 20th
 // Worked on EXTI0,1, GPIOC, and PA0; October 30th
 // Worked on placing the oled template; October 30th
@@ -76,6 +77,7 @@ void myTIM3_Init(void);
 void TIM3_Delay(uint32_t);
 void myEXTI_Init(void);
 void myADC_Init(void);
+void myDAC_Init(void);
 
 /*Relevant led inits*/
 void oled_Write(unsigned char);
@@ -89,10 +91,10 @@ void refresh_OLED(void);
 // (say, timerTriggered = 0 or 1) to indicate
 // whether TIM2 has started counting or not.
 unsigned int count = 0;
-float period = 0;
-float frequency = 0;
-float res = 0;
-float adcVal = 0;
+unsigned int period = 0;
+unsigned int frequency = 0;
+unsigned int res = 0;
+unsigned int adcVal = 0;
 unsigned int inSig = 0; // Flags that tells user button is pressed
 
 SPI_HandleTypeDef SPI_Handle;
@@ -314,7 +316,7 @@ int main(int argc, char* argv[])
 	myEXTI_Init();		/* Initialize EXTI */
 	myADC_Init();       /* Initialize ADC */
     myDAC_Init();       /* Initialize DAC */
-	oled_config();      /* Initialize OLED */
+	//oled_config();      /* Initialize OLED */
 
 
 	while (1)
@@ -323,11 +325,11 @@ int main(int argc, char* argv[])
         if (ADC1->ISR & ADC_ISR_EOC) //check if conversion is complete
         {
             ADC1->ISR |= ADC_ISR_EOC; //clear EOC flag
-            uint32_t adc_val = ADC1->DR; //read adc value
-            DAC->DHR12R1 = adc_val; //write adc value to DAC
-            res = 5000*adc_val/ADC_SCALE; //convert adc value to voltage
+            DAC->DHR12R1 = ADC1->DR; //write adc value to DAC
+            res = 5000*(ADC1->DR)/ADC_SCALE; //convert adc value to voltage
+            trace_printf(res);
         }
-        refresh_OLED();
+        //refresh_OLED();
 	}
 
 	return 0;
@@ -451,7 +453,7 @@ void myTIM3_Init(){
 void TIM3_Delay(uint32_t delay){
     TIM3->CNT = delay; //set delay
     TIM3->CR1 |= TIM_CR1_CEN; //start timer
-    while(TIM3->SR & TIM_SR_UIF == 0);  //wait for delay
+    while((TIM3->SR & TIM_SR_UIF) == 0);  //wait for delay
     TIM3->CR1 &= ~TIM_CR1_CEN; //stop timer
 }
 
@@ -460,7 +462,7 @@ void myADC_Init(){
 	/* STEP 1: Enable clock for GPIOA peripheral */
 	// Relevant register: RCC->AHBENR
 	RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
-    
+
 	/* STEP 2: ADC1 -> CFGR1 Configuration Register */
     ADC1->CFGR1 |= (ADC_CFGR1_RES);
     ADC1->CFGR1 |= (ADC_CFGR1_ALIGN);
@@ -728,12 +730,8 @@ void EXTI0_1_IRQHandler()
 		else{
 			TIM2->CR1 &= ~TIM_CR1_CEN;
 			count = TIM2->CNT;
-			period = (float)count/(float)SystemCoreClock;
+			period = count/SystemCoreClock;
             frequency = 1/period;
-//            trace_printf("Count: %u\n", count);
-//            trace_printf("Period: %u\n", (unsigned int)(period*1000000));
-//            trace_printf("Frequency: %u\n", (unsigned int)frequency);
-
 		}
 		EXTI->PR |= EXTI_PR_PR1;
 	}
@@ -794,7 +792,7 @@ void EXTI2_3_IRQHandler()
 		else{
             TIM2->CR1 &= ~TIM_CR1_CEN;
             count = TIM2->CNT;
-            period = (float)count/(float)SystemCoreClock;
+            period = count/SystemCoreClock;
             frequency = 1/period;
 
 		}

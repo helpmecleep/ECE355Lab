@@ -386,23 +386,30 @@ void myTIM2_Init()
 	/* Enable clock for TIM2 peripheral */
 	// Relevant register: RCC->APB1ENR
 	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+
 	/* Configure TIM2: buffer auto-reload, count up, stop on overflow,
 	 * enable update events, interrupt on overflow only */
 	// Relevant register: TIM2->CR1
 	TIM2->CR1 = ((uint16_t)0x008C);
+
 	/* Set clock pre-scaler value */
 	TIM2->PSC = myTIM2_PRESCALER;
+
 	/* Set auto-reloaded delay */
 	TIM2->ARR = myTIM2_PERIOD;
+
 	/* Update timer registers */
 	// Relevant register: TIM2->EGR
 	TIM2->EGR = ((uint16_t)0x0001);
+
 	/* Assign TIM2 interrupt priority = 0 in NVIC */
 	// Relevant register: NVIC->IP[3], or use NVIC_SetPriority
 	NVIC_SetPriority(TIM2_IRQn, 0);
+
 	/* Enable TIM2 interrupts in NVIC */
 	// Relevant register: NVIC->ISER[0], or use NVIC_EnableIRQ
 	NVIC_EnableIRQ(TIM2_IRQn);
+
 	/* Enable update interrupt generation */
 	// Relevant register: TIM2->DIER
 	TIM2->DIER |= TIM_DIER_UIE;
@@ -413,17 +420,22 @@ void myTIM3_Init(){
 	/* Enable clock for TIM2 peripheral */
 	// Relevant register: RCC->APB1ENR
 	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+
 	/* Configure TIM3: buffer auto-reload, count up, stop on overflow,
 	 * enable update events, interrupt on overflow only */
 	// Relevant register: TIM3->CR1
 	TIM3->CR1 = ((uint16_t)0x008C);
+
 	/* Set clock prescaler value */
 	TIM3->PSC = myTIM3_PRESCALER;
+
 	/* Set auto-reloaded delay */
 	TIM3->ARR = myTIM3_PERIOD;
+
 	/* Update timer registers */
 	// Relevant register: TIM2->EGR
 	TIM3->EGR = ((uint16_t)0x0001);
+    
 	/* Enable update interrupt generation */
 	// Relevant register: TIM3->DIER
 	TIM3->DIER |= TIM_DIER_UIE;

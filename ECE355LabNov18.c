@@ -1,3 +1,5 @@
+
+
 // Worked on EXTI0,1 and PA0; October 20th
 // Worked on EXTI0,1, GPIOC, and PA0; October 30th
 // Worked on placing the oled template; October 30th
@@ -788,9 +790,6 @@ void EXTI2_3_IRQHandler()
             count = TIM2->CNT;
             period = (float)count/(float)SystemCoreClock;
             frequency = 1/period;
-           /* trace_printf("Count: %u\n", count);
-            trace_printf("Period: %u\n", (unsigned int)(period*1000000));
-            trace_printf("Frequency: %u\n", (unsigned int)frequency);*/
 
 		}
 		// 2. Clear EXTI2 interrupt pending flag (EXTI->PR).

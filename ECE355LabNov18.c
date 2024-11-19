@@ -1,4 +1,5 @@
 
+
 // Worked on EXTI0,1 and PA0; October 20th
 // Worked on EXTI0,1, GPIOC, and PA0; October 30th
 // Worked on placing the oled template; October 30th
@@ -71,8 +72,7 @@
 /*ADC Scale*/
 #define ADC_SCALE 4095
 
-void myGPIOA_Init(void);
-void myGPIOB_Init(void);
+void myGPIO_Init(void);
 void myTIM2_Init(void);
 void myTIM3_Init(void);
 void TIM3_Delay(uint32_t);
@@ -310,8 +310,7 @@ int main(int argc, char* argv[])
 
 	trace_printf("System clock: %u Hz\n", SystemCoreClock);
 
-	myGPIOA_Init();		/* Initialize I/O port PA */
-    myGPIOB_Init();		/* Initialize I/O port PB */
+	myGPIO_Init();		/* Initialize I/O port PA */
 	myTIM2_Init();		/* Initialize timer TIM2 */
 	myTIM3_Init();		/* Initialize timer TIM3 */
 	myEXTI_Init();		/* Initialize EXTI */
@@ -327,6 +326,202 @@ int main(int argc, char* argv[])
 
 	return 0;
 
+}
+
+
+
+void myGPIO_Init()
+{
+    /*===========================GPIOA Inits=============================*/
+	/* Enable clock for GPIOA peripheral */
+	// Relevant register: RCC->AHBENR
+	RCC->AHBENR |= RCC_AHBENR_GPIOAEN; //enable gpioa clock
+
+	/*Configure PA0, PA1, and PA2 as input*/
+	/* Configure PA5 and PA4 as analog*/
+	// Relevant register: GPIOA->MODER
+    GPIOA->MODER &= (GPIO_MODER_MODER0);
+    GPIOA->MODER &= (GPIO_MODER_MODER1);
+    GPIOA->MODER &= (GPIO_MODER_MODER2);
+    GPIOA->MODER |= (GPIO_MODER_MODER4);
+    GPIOA->MODER |= (GPIO_MODER_MODER5);
+	/*Ensure no pull-up/pull-down for PA0-5*/
+	// Relevant register: GPIOA->PUPDR
+	GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR0);
+    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR1);
+	GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR2);
+    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR4);
+    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR5);
+
+    /*===========================GPIOB Inits=============================*/
+    /* Enable clock for GPIOB peripheral */
+	// Relevant register: RCC->AHBENR
+	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
+
+	/*Configure PB4-7 as output, PB3 and 5 as AF0*/
+	// Relevant register: GPIOB->MODER
+    GPIOB->MODER |= (GPIO_MODER_MODER3_1);
+    GPIOB->MODER |= (GPIO_MODER_MODER4_0);
+    GPIOB->MODER |= (GPIO_MODER_MODER5_1);
+    GPIOB->MODER |= (GPIO_MODER_MODER6_0);
+    GPIOB->MODER |= (GPIO_MODER_MODER7_0);
+    GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL3);
+    GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL5);
+
+	/*Ensure no pull-up/pull-down for PB3-7*/
+    GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR3);
+    GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR4);
+	GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR5);
+    GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR6);
+    GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR7);
+
+    /*===========================SPI1 Inits=============================*/
+    /*Enable clock for SPI1*/
+    RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+}
+
+
+void myTIM2_Init()
+{
+	/* Enable clock for TIM2 peripheral */
+	// Relevant register: RCC->APB1ENR
+	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
+	/* Configure TIM2: buffer auto-reload, count up, stop on overflow,
+	 * enable update events, interrupt on overflow only */
+	// Relevant register: TIM2->CR1
+	TIM2->CR1 = ((uint16_t)0x008C);
+	/* Set clock pre-scaler value */
+	TIM2->PSC = myTIM2_PRESCALER;
+	/* Set auto-reloaded delay */
+	TIM2->ARR = myTIM2_PERIOD;
+	/* Update timer registers */
+	// Relevant register: TIM2->EGR
+	TIM2->EGR = ((uint16_t)0x0001);
+	/* Assign TIM2 interrupt priority = 0 in NVIC */
+	// Relevant register: NVIC->IP[3], or use NVIC_SetPriority
+	NVIC_SetPriority(TIM2_IRQn, 0);
+	/* Enable TIM2 interrupts in NVIC */
+	// Relevant register: NVIC->ISER[0], or use NVIC_EnableIRQ
+	NVIC_EnableIRQ(TIM2_IRQn);
+	/* Enable update interrupt generation */
+	// Relevant register: TIM2->DIER
+	TIM2->DIER |= TIM_DIER_UIE;
+}
+
+
+void myTIM3_Init(){
+	/* Enable clock for TIM2 peripheral */
+	// Relevant register: RCC->APB1ENR
+	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+	/* Configure TIM3: buffer auto-reload, count up, stop on overflow,
+	 * enable update events, interrupt on overflow only */
+	// Relevant register: TIM3->CR1
+	TIM3->CR1 = ((uint16_t)0x008C);
+	/* Set clock prescaler value */
+	TIM3->PSC = myTIM3_PRESCALER;
+	/* Set auto-reloaded delay */
+	TIM3->ARR = myTIM3_PERIOD;
+	/* Update timer registers */
+	// Relevant register: TIM2->EGR
+	TIM3->EGR = ((uint16_t)0x0001);
+	/* Enable update interrupt generation */
+	// Relevant register: TIM3->DIER
+	TIM3->DIER |= TIM_DIER_UIE;
+}
+
+
+void TIM3_Delay(uint32_t delay){
+    TIM3->CNT = delay; //set delay
+    TIM3->CR1 |= TIM_CR1_CEN; //start timer
+    while(TIM3->SR & TIM_SR_UIF == 0);  //wait for delay
+    TIM3->CR1 &= ~TIM_CR1_CEN; //stop timer
+}
+
+void myADC_Init(){
+
+	/* STEP 1: Enable clock for GPIOA peripheral */
+	// Relevant register: RCC->AHBENR
+	RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
+
+	/* Configure PA5 as analog */
+	// Relevant register: GPIOA->MODER
+	/* Configure PA4 as analog */
+	// Relevant register: GPIOA->MODER
+	//Doing this in myGPIOA_Init()
+
+	/* STEP 2: ADC1 -> CFGR1 Configuration Register */
+	ADC1 -> CFGR1 |= (ADC_CFGR1_RES | ADC_CFGR1_ALIGN | ADC_CFGR1_OVRMOD | ADC_CFGR1_CONT);
+
+
+	/* STEP 3: Channel Select (enable bit 5 to 1) ADC1 -> CHSELR[5]=1 */
+	ADC1 -> CHSELR |= ADC_CHSELR_CHSEL5;
+
+
+	/* STEP 4: ADC1 -> SMPR Sampling Time Register */
+	ADC1 -> SMPR |= ADC_SMPR_SMP;
+
+
+	/* STEP 5: ADC1 -> CR Control Register */
+	ADC1 -> CR |= ADC_CR_ADEN;
+
+
+
+	/* STEP 6: Wait loop for ISR[0] = 1 Interrupt and Status Register (Check for ADC Ready flag) */
+	while (!(ADC1->ISR & ADC_ISR_ADRDY));
+
+	//ADC1->CR |= ADC_CR_ADSTART;
+
+}
+
+void myEXTI_Init()
+{
+	/* Map EXTI2 and EXTI0 line to PA2 and PA0 respectively */
+	// Relevant register: SYSCFG -> EXTICR[0]
+	//SYSCFG->EXTICR[0] &= 0xF0F0;
+    // Map EXTI2, EXTI0 and EXTI 1 to PA2, PA0 and PA1 respectively
+    SYSCFG->EXTICR[0] &= 0xF000;
+
+	/* EXTI2, EXTI1 and EXTI0 line interrupts: set rising-edge trigger */
+	// Relevant register: EXTI->RTSR
+	EXTI->RTSR |= 0x07;
+
+	/* Unmask interrupts from EXTI2, EXTI1, and EXTI0 line */
+	// Relevant register: EXTI->IMR
+	EXTI-> IMR |= (EXTI_IMR_MR0 | EXTI_IMR_MR2 | EXTI_IMR_MR1);
+
+	/* Assign EXTI2 interrupt priority = 0 in NVIC */
+	// Relevant register: NVIC->IP[2], or use NVIC_SetPriority
+	NVIC_SetPriority(EXTI2_3_IRQn, 0);
+	/* Enable EXTI2 interrupts in NVIC */
+	// Relevant register: NVIC->ISER[0], or use NVIC_EnableIRQ
+    NVIC_EnableIRQ(EXTI2_3_IRQn);
+
+	/* Assign EXTI0 interrupt priority = 0 in NVIC */
+	// Relevant register: NVIC->IP[2], or use NVIC_SetPriority
+	NVIC_SetPriority(EXTI0_1_IRQn, 0);
+	/* Enable EXTI0 interrupts in NVIC */
+	// Relevant register: NVIC->ISER[0], or use NVIC_EnableIRQ
+    NVIC_EnableIRQ(EXTI0_1_IRQn);
+}
+
+
+/* This handler is declared in system/src/cmsis/vectors_stm32f051x8.c */
+void TIM2_IRQHandler()
+{
+	/* Check if update interrupt flag is indeed set */
+	if ((TIM2->SR & TIM_SR_UIF) != 0)
+	{
+		trace_printf("\n*** Overflow! ***\n");
+
+		/* Clear update interrupt flag */
+		// Relevant register: TIM2->SR
+		TIM2->SR &= ~TIM_SR_UIF;
+
+
+		/* Restart stopped timer */
+		// Relevant register: TIM2->CR1
+		TIM2->CR1 |= TIM_CR1_CEN;
+	}
 }
 
 
@@ -489,205 +684,6 @@ void refresh_OLED( void )
        - You should use TIM3 to implement this delay (e.g., via polling)
     */
     TIM3_Delay(100);
-}
-
-
-
-
-
-
-
-void myGPIOA_Init()
-{
-	/* Enable clock for GPIOA peripheral */
-	// Relevant register: RCC->AHBENR
-	RCC->AHBENR |= RCC_AHBENR_GPIOAEN;
-
-	/*Configure PA0, PA1, and PA2 as input*/
-	/* Configure PA5 and PA4 as analog*/
-	// Relevant register: GPIOA->MODER
-	GPIOA->MODER &= ~(GPIO_MODER_MODER0 | GPIO_MODER_MODER2 | GPIO_MODER_MODER1);
-	GPIOA->MODER |= (GPIO_MODER_MODER5 | GPIO_MODER_MODER4);
-
-	/*Ensure no pull-up/pull-down for PA0*/
-	GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR0);
-
-    /*Ensure no pull-up/pull-down for PA1*/
-    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR1);
-
-	/* Ensure no pull-up/pull-down for PA2 */
-	// Relevant register: GPIOA->PUPDR
-	GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR2);
-
-    /*Ensure no pull-up/pull-down for PA4*/
-    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR4);
-
-    /*Ensure no pull-up/pull-down for PA5*/
-    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR5);
-}
-
-
-
-void myGPIOB_Init(){
-    /* Enable clock for GPIOB peripheral */
-	// Relevant register: RCC->AHBENR
-	RCC->AHBENR |= RCC_AHBENR_GPIOBEN;
-    RCC->AHBENR |= RCC_APB2ENR_SPI1EN;
-
-	/*Configure PB4-7 as output, PB3 and 5 as AF0*/
-	// Relevant register: GPIOB->MODER
-    GPIOB->MODER |= (GPIO_MODER_MODER3_1 | GPIO_MODER_MODER4_0 | GPIO_MODER_MODER5_1 | GPIO_MODER_MODER6_0 | GPIO_MODER_MODER7_0);
-    GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL3 | GPIO_AFRL_AFRL5);
-
-	/*Ensure no pull-up/pull-down for PB3-7*/
-	GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR3 | GPIO_PUPDR_PUPDR4 | GPIO_PUPDR_PUPDR5 | GPIO_PUPDR_PUPDR6 | GPIO_PUPDR_PUPDR7);
-    // GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR4);
-	// GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR5);
-    // GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR6);
-    // GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR7);
-
-}
-void myTIM2_Init()
-{
-	/* Enable clock for TIM2 peripheral */
-	// Relevant register: RCC->APB1ENR
-	RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
-	/* Configure TIM2: buffer auto-reload, count up, stop on overflow,
-	 * enable update events, interrupt on overflow only */
-	// Relevant register: TIM2->CR1
-	TIM2->CR1 = ((uint16_t)0x008C);
-	/* Set clock pre-scaler value */
-	TIM2->PSC = myTIM2_PRESCALER;
-	/* Set auto-reloaded delay */
-	TIM2->ARR = myTIM2_PERIOD;
-	/* Update timer registers */
-	// Relevant register: TIM2->EGR
-	TIM2->EGR = ((uint16_t)0x0001);
-	/* Assign TIM2 interrupt priority = 0 in NVIC */
-	// Relevant register: NVIC->IP[3], or use NVIC_SetPriority
-	NVIC_SetPriority(TIM2_IRQn, 0);
-	/* Enable TIM2 interrupts in NVIC */
-	// Relevant register: NVIC->ISER[0], or use NVIC_EnableIRQ
-	NVIC_EnableIRQ(TIM2_IRQn);
-	/* Enable update interrupt generation */
-	// Relevant register: TIM2->DIER
-	TIM2->DIER |= TIM_DIER_UIE;
-}
-
-
-void myTIM3_Init(){
-	/* Enable clock for TIM2 peripheral */
-	// Relevant register: RCC->APB1ENR
-	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
-	/* Configure TIM3: buffer auto-reload, count up, stop on overflow,
-	 * enable update events, interrupt on overflow only */
-	// Relevant register: TIM3->CR1
-	TIM3->CR1 = ((uint16_t)0x008C);
-	/* Set clock prescaler value */
-	TIM3->PSC = myTIM3_PRESCALER;
-	/* Set auto-reloaded delay */
-	TIM3->ARR = myTIM3_PERIOD;
-	/* Update timer registers */
-	// Relevant register: TIM2->EGR
-	TIM3->EGR = ((uint16_t)0x0001);
-	/* Enable update interrupt generation */
-	// Relevant register: TIM3->DIER
-	TIM3->DIER |= TIM_DIER_UIE;
-}
-
-
-void TIM3_Delay(uint32_t delay){
-    TIM3->CNT = delay; //set delay
-    TIM3->CR1 |= TIM_CR1_CEN; //start timer
-    while(TIM3->SR & TIM_SR_UIF == 0);  //wait for delay
-    TIM3->CR1 &= ~TIM_CR1_CEN; //stop timer
-}
-
-void myADC_Init(){
-
-	/* STEP 1: Enable clock for GPIOA peripheral */
-	// Relevant register: RCC->AHBENR
-	RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
-
-	/* Configure PA5 as analog */
-	// Relevant register: GPIOA->MODER
-	/* Configure PA4 as analog */
-	// Relevant register: GPIOA->MODER
-	//Doing this in myGPIOA_Init()
-
-	/* STEP 2: ADC1 -> CFGR1 Configuration Register */
-	ADC1 -> CFGR1 |= (ADC_CFGR1_RES | ADC_CFGR1_ALIGN | ADC_CFGR1_OVRMOD | ADC_CFGR1_CONT);
-
-
-	/* STEP 3: Channel Select (enable bit 5 to 1) ADC1 -> CHSELR[5]=1 */
-	ADC1 -> CHSELR |= ADC_CHSELR_CHSEL5;
-
-
-	/* STEP 4: ADC1 -> SMPR Sampling Time Register */
-	ADC1 -> SMPR |= ADC_SMPR_SMP;
-
-
-	/* STEP 5: ADC1 -> CR Control Register */
-	ADC1 -> CR |= ADC_CR_ADEN;
-
-
-
-	/* STEP 6: Wait loop for ISR[0] = 1 Interrupt and Status Register (Check for ADC Ready flag) */
-	while (!(ADC1->ISR & ADC_ISR_ADRDY));
-
-	//ADC1->CR |= ADC_CR_ADSTART;
-
-}
-
-void myEXTI_Init()
-{
-	/* Map EXTI2 and EXTI0 line to PA2 and PA0 respectively */
-	// Relevant register: SYSCFG -> EXTICR[0]
-	//SYSCFG->EXTICR[0] &= 0xF0F0;
-    // Map EXTI2, EXTI0 and EXTI 1 to PA2, PA0 and PA1 respectively
-    SYSCFG->EXTICR[0] &= 0xF000;
-
-	/* EXTI2, EXTI1 and EXTI0 line interrupts: set rising-edge trigger */
-	// Relevant register: EXTI->RTSR
-	EXTI->RTSR |= 0x07;
-
-	/* Unmask interrupts from EXTI2, EXTI1, and EXTI0 line */
-	// Relevant register: EXTI->IMR
-	EXTI-> IMR |= (EXTI_IMR_MR0 | EXTI_IMR_MR2 | EXTI_IMR_MR1);
-
-	/* Assign EXTI2 interrupt priority = 0 in NVIC */
-	// Relevant register: NVIC->IP[2], or use NVIC_SetPriority
-	NVIC_SetPriority(EXTI2_3_IRQn, 0);
-	/* Enable EXTI2 interrupts in NVIC */
-	// Relevant register: NVIC->ISER[0], or use NVIC_EnableIRQ
-    NVIC_EnableIRQ(EXTI2_3_IRQn);
-
-	/* Assign EXTI0 interrupt priority = 0 in NVIC */
-	// Relevant register: NVIC->IP[2], or use NVIC_SetPriority
-	NVIC_SetPriority(EXTI0_1_IRQn, 0);
-	/* Enable EXTI0 interrupts in NVIC */
-	// Relevant register: NVIC->ISER[0], or use NVIC_EnableIRQ
-    NVIC_EnableIRQ(EXTI0_1_IRQn);
-}
-
-
-/* This handler is declared in system/src/cmsis/vectors_stm32f051x8.c */
-void TIM2_IRQHandler()
-{
-	/* Check if update interrupt flag is indeed set */
-	if ((TIM2->SR & TIM_SR_UIF) != 0)
-	{
-		trace_printf("\n*** Overflow! ***\n");
-
-		/* Clear update interrupt flag */
-		// Relevant register: TIM2->SR
-		TIM2->SR &= ~TIM_SR_UIF;
-
-
-		/* Restart stopped timer */
-		// Relevant register: TIM2->CR1
-		TIM2->CR1 |= TIM_CR1_CEN;
-	}
 }
 
 void EXTI0_1_IRQHandler()

@@ -435,7 +435,7 @@ void myTIM3_Init(){
 	/* Update timer registers */
 	// Relevant register: TIM2->EGR
 	TIM3->EGR = ((uint16_t)0x0001);
-    
+
 	/* Enable update interrupt generation */
 	// Relevant register: TIM3->DIER
 	TIM3->DIER |= TIM_DIER_UIE;
@@ -454,35 +454,45 @@ void myADC_Init(){
 	/* STEP 1: Enable clock for GPIOA peripheral */
 	// Relevant register: RCC->AHBENR
 	RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
-
-	/* Configure PA5 as analog */
-	// Relevant register: GPIOA->MODER
-	/* Configure PA4 as analog */
-	// Relevant register: GPIOA->MODER
-	//Doing this in myGPIOA_Init()
-
+    
 	/* STEP 2: ADC1 -> CFGR1 Configuration Register */
-	ADC1 -> CFGR1 |= (ADC_CFGR1_RES | ADC_CFGR1_ALIGN | ADC_CFGR1_OVRMOD | ADC_CFGR1_CONT);
+    ADC1->CFGR1 |= (ADC_CFGR1_RES);
+    ADC1->CFGR1 |= (ADC_CFGR1_ALIGN);
+    ADC1->CFGR1 |= (ADC_CFGR1_OVRMOD);
+    ADC1->CFGR1 |= (ADC_CFGR1_CONT);
 
-
-	/* STEP 3: Channel Select (enable bit 5 to 1) ADC1 -> CHSELR[5]=1 */
-	ADC1 -> CHSELR |= ADC_CHSELR_CHSEL5;
-
-
-	/* STEP 4: ADC1 -> SMPR Sampling Time Register */
+	/* STEP 3: ADC1 -> SMPR Sampling Time Register */
 	ADC1 -> SMPR |= ADC_SMPR_SMP;
 
+	/* STEP 4: Channel Select (enable bit 5 to 1) ADC1 -> CHSELR[5]=1 */
+	ADC1 -> CHSELR |= ADC_CHSELR_CHSEL5;
 
 	/* STEP 5: ADC1 -> CR Control Register */
 	ADC1 -> CR |= ADC_CR_ADEN;
-
-
 
 	/* STEP 6: Wait loop for ISR[0] = 1 Interrupt and Status Register (Check for ADC Ready flag) */
 	while (!(ADC1->ISR & ADC_ISR_ADRDY));
 
 	//ADC1->CR |= ADC_CR_ADSTART;
 
+}
+
+void myDAC_Init(){
+    /* Enable clock for DAC peripheral */
+    // Relevant register: RCC->APB1ENR
+    RCC->APB1ENR |= RCC_APB1ENR_DACEN;
+
+    /* Enable DAC channel 1 */
+    // Relevant register: DAC->CR
+    DAC->CR |= DAC_CR_EN1;
+
+    // /*DAC Channel 1 tristate buffer*/
+    // // Relevant register: DAC->CR
+    // DAC->CR &= ~DAC_CR_BOFF1;
+
+    // /*DAC Channel 1 trigger enable*/
+    // // Relevant register: DAC->CR
+    // DAC->CR &= ~DAC_CR_TEN1;
 }
 
 void myEXTI_Init()

@@ -1,5 +1,3 @@
-
-
 // Worked on EXTI0,1 and PA0; October 20th
 // Worked on EXTI0,1, GPIOC, and PA0; October 30th
 // Worked on placing the oled template; October 30th
@@ -315,12 +313,20 @@ int main(int argc, char* argv[])
 	myTIM3_Init();		/* Initialize timer TIM3 */
 	myEXTI_Init();		/* Initialize EXTI */
 	myADC_Init();       /* Initialize ADC */
-	oled_config();
-
+    myDAC_Init();       /* Initialize DAC */
+	oled_config();      /* Initialize OLED */
 
 
 	while (1)
 	{
+        ADC1->CR |= ADC_CR_ADSTART; //start adc conversion
+        if (ADC1->ISR & ADC_ISR_EOC) //check if conversion is complete
+        {
+            ADC1->ISR |= ADC_ISR_EOC; //clear EOC flag
+            uint32_t adc_val = ADC1->DR; //read adc value
+            DAC->DHR12R1 = adc_val; //write adc value to DAC
+            res = 5000*adc_val/ADC_SCALE; //convert adc value to voltage
+        }
         refresh_OLED();
 	}
 

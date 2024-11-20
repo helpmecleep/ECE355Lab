@@ -76,6 +76,7 @@ void myTIM3_Init(void);
 void TIM3_Delay(uint32_t);
 void myEXTI_Init(void);
 void myADC_Init(void);
+void myDAC_Init(void);
 
 /*Relevant led inits*/
 void oled_Write(unsigned char);
@@ -347,21 +348,12 @@ void myGPIO_Init()
 	/* Configure PA5 and PA4 as analog*/
 	// Relevant register: GPIOA->MODER
     // Clear the MODER bits for PA0, PA1, PA2, PA4, and PA5
-    GPIOA->MODER &= ~(GPIO_MODER_MODER0 | GPIO_MODER_MODER1 | GPIO_MODER_MODER2 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5);
-
-    // Set PA0, PA1, and PA2 as Input mode
-    GPIOA->MODER |= GPIO_MODER_MODER0;
-    GPIOA->MODER |= GPIO_MODER_MODER1;
-    GPIOA->MODER |= GPIO_MODER_MODER2;
-
-    // Set PA4 and PA5 as Analog mode
-    GPIOA->MODER |= GPIO_MODER_MODER4 | GPIO_MODER_MODER5;
-
-    // GPIOA->MODER &= (GPIO_MODER_MODER0);
-    // GPIOA->MODER &= (GPIO_MODER_MODER1);
-    // GPIOA->MODER &= (GPIO_MODER_MODER2);
-    // GPIOA->MODER |= (GPIO_MODER_MODER4_2);
-    // GPIOA->MODER |= (GPIO_MODER_MODER5_2);
+     GPIOA->MODER &= ~(GPIO_MODER_MODER0 | GPIO_MODER_MODER1 | GPIO_MODER_MODER2 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5);
+     GPIOA->MODER &= ~(GPIO_MODER_MODER0);
+     GPIOA->MODER &= ~(GPIO_MODER_MODER1);
+     GPIOA->MODER &= ~(GPIO_MODER_MODER2);
+     GPIOA->MODER |= (GPIO_MODER_MODER4);
+     GPIOA->MODER |= (GPIO_MODER_MODER5);
 	/*Ensure no pull-up/pull-down for PA0-5*/
 	// Relevant register: GPIOA->PUPDR
 	GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR0);
@@ -378,23 +370,15 @@ void myGPIO_Init()
 	/*Configure PB4-7 as output, PB3 and 5 as AF0*/
 	// Relevant register: GPIOB->MODER
     // Clear the MODER bits for PB3-7
-    GPIOB->MODER &= ~(GPIO_MODER_MODER3 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5 | GPIO_MODER_MODER6 | GPIO_MODER_MODER7);
+     GPIOB->MODER &= ~(GPIO_MODER_MODER3 | GPIO_MODER_MODER4 | GPIO_MODER_MODER5 | GPIO_MODER_MODER6 | GPIO_MODER_MODER7);
 
-    // Set PB4-7 as Output mode
-    GPIOB->MODER |= GPIO_MODER_MODER4_0;
-    GPIOB->MODER |= GPIO_MODER_MODER5_0;
-    GPIOB->MODER |= GPIO_MODER_MODER6_0;
-    GPIOB->MODER |= GPIO_MODER_MODER7_0;
-    GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL3);
-    GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL5);
-
-    // GPIOB->MODER |= (GPIO_MODER_MODER3_1);
-    // GPIOB->MODER |= (GPIO_MODER_MODER4_0);
-    // GPIOB->MODER |= (GPIO_MODER_MODER5_1);
-    // GPIOB->MODER |= (GPIO_MODER_MODER6_0);
-    // GPIOB->MODER |= (GPIO_MODER_MODER7_0);
-    // GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL3);
-    // GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL5);
+     GPIOB->MODER |= (GPIO_MODER_MODER3_1);
+     GPIOB->MODER |= (GPIO_MODER_MODER4_0);
+     GPIOB->MODER |= (GPIO_MODER_MODER5_1);
+     GPIOB->MODER |= (GPIO_MODER_MODER6_0);
+     GPIOB->MODER |= (GPIO_MODER_MODER7_0);
+     GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL3);
+     GPIOB->AFR[0] &= ~(GPIO_AFRL_AFRL5);
 
 	/*Ensure no pull-up/pull-down for PB3-7*/
     GPIOB->PUPDR &= ~(GPIO_PUPDR_PUPDR3);
@@ -473,27 +457,24 @@ void myTIM3_Init(){
 void TIM3_Delay(uint32_t delay){
     TIM3->CNT = delay; //set delay
     TIM3->CR1 |= TIM_CR1_CEN; //start timer
-    while(TIM3->SR & TIM_SR_UIF == 0);  //wait for delay
+    while((TIM3->SR & TIM_SR_UIF) == 0);  //wait for delay
     TIM3->CR1 &= ~TIM_CR1_CEN; //stop timer
 }
 
 void myADC_Init(){
     // Enable the ADC clock
     RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
+    ADC1->CFGR1 &= ~ADC_CFGR1_RES;
+    ADC1->CFGR1 &= ~ADC_CFGR1_ALIGN;
 
-    // Configure ADC resolution to 12 bits (0b11 << ADC_CFGR1_RES_Pos)
-    ADC1->CFGR1 &= ~ADC_CFGR1_RES;                  // Clear resolution bits
-    ADC1->CFGR1 |= ADC_CFGR1_RES_1 | ADC_CFGR1_RES_0; // Set resolution to 12-bit (0b11)
+    // Set sample time
+    ADC1->SMPR |= ADC_SMPR_SMP;
 
-    // Set sample time to the maximum (239.5 ADC cycles)
-    ADC1->SMPR |= ADC_SMPR_SMP;                     // Set SMP to 0b111 for maximum sampling time
-
-    // Select ADC channel 5 (bit 5 set in CHSELR)
+    // Select ADC channel 5
     ADC1->CHSELR |= ADC_CHSELR_CHSEL5;
 
     // Enable ADC by setting ADEN in the CR register
     ADC1->CR |= ADC_CR_ADEN;
-
 }
 
 void myDAC_Init(){
@@ -673,7 +654,7 @@ void refresh_OLED( void )
     // Buffer size = at most 16 characters per PAGE + terminating '\0'
     unsigned char Buffer[17];
 
-    snprintf( Buffer, sizeof( Buffer ), "R: %5u Ohms", res );
+    snprintf( Buffer, sizeof( Buffer ), "R: %5u Ohms", (int)res );
     /* Buffer now contains your character ASCII codes for LED Display
        - select PAGE (LED Display line) and set starting SEG (column)
        - for each c = ASCII code = Buffer[0], Buffer[1], ...,
@@ -692,7 +673,7 @@ void refresh_OLED( void )
         }
     }
 
-    snprintf( Buffer, sizeof( Buffer ), "F: %5u Hz", frequency );
+    snprintf( Buffer, sizeof( Buffer ), "F: %5u Hz", (int)frequency );
     /* Buffer now contains your character ASCII codes for LED Display
        - select PAGE (LED Display line) and set starting SEG (column)
        - for each c = ASCII code = Buffer[0], Buffer[1], ...,
@@ -723,8 +704,8 @@ void EXTI0_1_IRQHandler()
     period = 0;
     frequency = 0;
 	/* Check if EXTI0 interrupt pending flag is indeed set */
-	if((EXTI->PR & EXTI_PR_PR1)){
-		if(TIM2->CR1 & TIM_CR1_CEN){
+	if((EXTI->PR & EXTI_PR_PR1) != 0){
+		if((TIM2->CR1 & TIM_CR1_CEN) == 0){
 			TIM2->CNT = 0;
 			TIM2->CR1 |= TIM_CR1_CEN;
 		}

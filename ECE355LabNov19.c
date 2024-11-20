@@ -478,48 +478,30 @@ void TIM3_Delay(uint32_t delay){
 }
 
 void myADC_Init(){
+    // Enable the ADC clock
+    RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
 
-	/* STEP 1: Enable clock for GPIOA peripheral */
-	// Relevant register: RCC->AHBENR
-	RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
-    
-	/* STEP 2: ADC1 -> CFGR1 Configuration Register */
-    ADC1->CFGR1 |= (ADC_CFGR1_RES);
-    ADC1->CFGR1 |= (ADC_CFGR1_ALIGN);
-    ADC1->CFGR1 |= (ADC_CFGR1_OVRMOD);
-    ADC1->CFGR1 |= (ADC_CFGR1_CONT);
-	/* STEP 3: ADC1 -> SMPR Sampling Time Register */
-	ADC1 -> SMPR |= ADC_SMPR_SMP;
+    // Configure ADC resolution to 12 bits (0b11 << ADC_CFGR1_RES_Pos)
+    ADC1->CFGR1 &= ~ADC_CFGR1_RES;                  // Clear resolution bits
+    ADC1->CFGR1 |= ADC_CFGR1_RES_1 | ADC_CFGR1_RES_0; // Set resolution to 12-bit (0b11)
 
-	/* STEP 4: Channel Select (enable bit 5 to 1) ADC1 -> CHSELR[5]=1 */
-	ADC1 -> CHSELR |= ADC_CHSELR_CHSEL5;
+    // Set sample time to the maximum (239.5 ADC cycles)
+    ADC1->SMPR |= ADC_SMPR_SMP;                     // Set SMP to 0b111 for maximum sampling time
 
-	/* STEP 5: ADC1 -> CR Control Register */
-	ADC1 -> CR |= ADC_CR_ADEN;
+    // Select ADC channel 5 (bit 5 set in CHSELR)
+    ADC1->CHSELR |= ADC_CHSELR_CHSEL5;
 
-	/* STEP 6: Wait loop for ISR[0] = 1 Interrupt and Status Register (Check for ADC Ready flag) */
-	while (!(ADC1->ISR & ADC_ISR_ADRDY));
-
-	//ADC1->CR |= ADC_CR_ADSTART;
+    // Enable ADC by setting ADEN in the CR register
+    ADC1->CR |= ADC_CR_ADEN;
 
 }
 
 void myDAC_Init(){
-    /* Enable clock for DAC peripheral */
-    // Relevant register: RCC->APB1ENR
+    // Enable clock for DAC peripheral
     RCC->APB1ENR |= RCC_APB1ENR_DACEN;
 
-    /* Enable DAC channel 1 */
-    // Relevant register: DAC->CR
+    // Enable DAC channel 1 by setting EN1 in the DAC control register (DAC->CR)
     DAC->CR |= DAC_CR_EN1;
-
-    // /*DAC Channel 1 tristate buffer*/
-    // // Relevant register: DAC->CR
-    // DAC->CR &= ~DAC_CR_BOFF1;
-
-    // /*DAC Channel 1 trigger enable*/
-    // // Relevant register: DAC->CR
-    // DAC->CR &= ~DAC_CR_TEN1;
 }
 
 void myEXTI_Init()

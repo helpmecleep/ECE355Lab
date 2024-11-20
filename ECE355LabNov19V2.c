@@ -462,13 +462,21 @@ void TIM3_Delay(uint32_t delay){
 }
 
 void myADC_Init(){
-	RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
-	ADC1->CFGR1 = 0x3000;
-	ADC1->SMPR = 0x7;
-	ADC1->CHSELR = 0x20;
-	ADC1->CR = 0x1;
-	while((ADC1->ISR) == 0);
+// Enable the ADC clock
+RCC->APB2ENR |= RCC_APB2ENR_ADCEN;
 
+// Configure ADC resolution to 12 bits (0b11 << ADC_CFGR1_RES_Pos)
+ADC1->CFGR1 &= ~ADC_CFGR1_RES;               // Clear resolution bits
+ADC1->CFGR1 |= ADC_CFGR1_RES_1 | ADC_CFGR1_RES_0; // Set resolution to 12-bit (0b11)
+
+// Set sample time to the maximum (239.5 ADC cycles)
+ADC1->SMPR |= ADC_SMPR_SMP; // Set SMP to 0b111 for maximum sampling time
+
+// Select ADC channel 5 (bit 5 set in CHSELR)
+ADC1->CHSELR |= ADC_CHSELR_CHSEL5;
+
+// Enable ADC by setting ADEN in the CR register
+ADC1->CR |= ADC_CR_ADEN;
 }
 
 void myDAC_Init(){

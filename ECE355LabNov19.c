@@ -91,8 +91,8 @@ void refresh_OLED(void);
 // whether TIM2 has started counting or not.
 unsigned int count = 0;
 float period = 0;
-float frequency = 0;
-float res = 0;
+unsigned int frequency = 0;
+unsigned int res = 0;
 float adcVal = 0;
 unsigned int inSig = 0; // Flags that tells user button is pressed
 
@@ -324,9 +324,9 @@ int main(int argc, char* argv[])
         if (ADC1->ISR & ADC_ISR_EOC) //check if conversion is complete
         {
             ADC1->ISR |= ADC_ISR_EOC; //clear EOC flag
-            uint32_t adc_val = ADC1->DR; //read adc value
-            DAC->DHR12R1 = adc_val; //write adc value to DAC
-            res = 5000*adc_val/ADC_SCALE; //convert adc value to voltage
+            adcVal = ADC1->DR; //read adc value
+            DAC->DHR12R1 = adcVal; //write adc value to DAC
+            res = 5000*adcVal/ADC_SCALE; //convert adc value to voltage
         }
         refresh_OLED();
 	}
@@ -356,11 +356,11 @@ void myGPIO_Init()
      GPIOA->MODER |= (GPIO_MODER_MODER5);
 	/*Ensure no pull-up/pull-down for PA0-5*/
 	// Relevant register: GPIOA->PUPDR
-	GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR0);
-    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR1);
-	GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR2);
-    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR4);
-    GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR5);
+     GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR0);
+     GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR1);
+	 GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR2);
+     GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR4);
+     GPIOA->PUPDR &= ~(GPIO_PUPDR_PUPDR5);
 
     /*===========================GPIOB Inits=============================*/
     /* Enable clock for GPIOB peripheral */
@@ -499,11 +499,12 @@ void myEXTI_Init()
 
 	/* Unmask interrupts from EXTI2, EXTI1, and EXTI0 line */
 	// Relevant register: EXTI->IMR
-	EXTI-> IMR |= (EXTI_IMR_MR0 | EXTI_IMR_MR2 | EXTI_IMR_MR1);
+	EXTI-> IMR &= ~(EXTI_IMR_MR0 | EXTI_IMR_MR1 | EXTI_IMR_MR2);
+	EXTI-> IMR |= (EXTI_IMR_MR0 | EXTI_IMR_MR2);
 
 	/* Assign EXTI2 interrupt priority = 0 in NVIC */
 	// Relevant register: NVIC->IP[2], or use NVIC_SetPriority
-	NVIC_SetPriority(EXTI2_3_IRQn, 0);
+	NVIC_SetPriority(EXTI2_3_IRQn, 1);
 	/* Enable EXTI2 interrupts in NVIC */
 	// Relevant register: NVIC->ISER[0], or use NVIC_EnableIRQ
     NVIC_EnableIRQ(EXTI2_3_IRQn);
@@ -654,7 +655,7 @@ void refresh_OLED( void )
     // Buffer size = at most 16 characters per PAGE + terminating '\0'
     unsigned char Buffer[17];
 
-    snprintf( Buffer, sizeof( Buffer ), "R: %5u Ohms", (int)res );
+    snprintf( Buffer, sizeof( Buffer ), "R: %5u Ohms", res );
     /* Buffer now contains your character ASCII codes for LED Display
        - select PAGE (LED Display line) and set starting SEG (column)
        - for each c = ASCII code = Buffer[0], Buffer[1], ...,
@@ -673,7 +674,7 @@ void refresh_OLED( void )
         }
     }
 
-    snprintf( Buffer, sizeof( Buffer ), "F: %5u Hz", (int)frequency );
+    snprintf( Buffer, sizeof( Buffer ), "F: %5u Hz", frequency );
     /* Buffer now contains your character ASCII codes for LED Display
        - select PAGE (LED Display line) and set starting SEG (column)
        - for each c = ASCII code = Buffer[0], Buffer[1], ...,
@@ -714,10 +715,6 @@ void EXTI0_1_IRQHandler()
 			count = TIM2->CNT;
 			period = (float)count/(float)SystemCoreClock;
             frequency = 1/period;
-//            trace_printf("Count: %u\n", count);
-//            trace_printf("Period: %u\n", (unsigned int)(period*1000000));
-//            trace_printf("Frequency: %u\n", (unsigned int)frequency);
-
 		}
 		EXTI->PR |= EXTI_PR_PR1;
 	}

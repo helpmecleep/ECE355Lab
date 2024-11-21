@@ -1,3 +1,5 @@
+
+
 // Worked on EXTI0,1 and PA0; October 20th
 // Worked on EXTI0,1, GPIOC, and PA0; October 30th
 // Worked on placing the oled template; October 30th
@@ -329,6 +331,7 @@ int main(int argc, char* argv[])
             res = 5000*adcVal/ADC_SCALE; //convert adc value to voltage
         }
         refresh_OLED();
+        for ( long i = 0; i < 200000; i++ );
 	}
 
 	return 0;
@@ -459,6 +462,8 @@ void TIM3_Delay(uint32_t delay){
     TIM3->CR1 |= TIM_CR1_CEN; //start timer
     while((TIM3->SR & TIM_SR_UIF) == 0);  //wait for delay
     TIM3->CR1 &= ~TIM_CR1_CEN; //stop timer
+    TIM3->SR &= ~TIM_SR_UIF; //clear interrupt flag
+
 }
 
 void myADC_Init(){
@@ -482,7 +487,6 @@ void myDAC_Init(){
     RCC->APB1ENR |= RCC_APB1ENR_DACEN;
 
     // Enable DAC channel 1 by setting EN1 in the DAC control register (DAC->CR)
-    DAC->CR &= ~DAC_CR_BOFF1;
     DAC->CR |= DAC_CR_EN1;
 }
 
@@ -492,15 +496,11 @@ void myEXTI_Init()
 	// Relevant register: SYSCFG -> EXTICR[0]
 	//SYSCFG->EXTICR[0] &= 0xF0F0;
     // Map EXTI2, EXTI0 and EXTI 1 to PA2, PA0 and PA1 respectively
-    //SYSCFG->EXTICR[0] &= 0xF000;
-    SYSCFG->EXTICR[0] &= ~(SYSCFG_EXTICR1_EXTI0_PA | SYSCFG_EXTICR1_EXTI1_PA | SYSCFG_EXTICR1_EXTI2_PA);
-    SYSCFG->EXTICR[0] |= (SYSCFG_EXTICR1_EXTI0_PA |SYSCFG_EXTICR1_EXTI1_PA |SYSCFG_EXTICR1_EXTI2_PA);
+    SYSCFG->EXTICR[0] &= 0xF000;
 
 	/* EXTI2, EXTI1 and EXTI0 line interrupts: set rising-edge trigger */
 	// Relevant register: EXTI->RTSR
-	//EXTI->RTSR |= 0x07;
-    EXTI->RTSR &= ~(EXTI_RTSR_TR0 | EXTI_RTSR_TR1 | EXTI_RTSR_TR2);
-
+	EXTI->RTSR |= 0x07;
 
 	/* Unmask interrupts from EXTI2, EXTI1, and EXTI0 line */
 	// Relevant register: EXTI->IMR
@@ -706,9 +706,6 @@ void refresh_OLED( void )
 
 void EXTI0_1_IRQHandler()
 {
-    count = 0;
-    period = 0;
-    frequency = 0;
 	/* Check if EXTI0 interrupt pending flag is indeed set */
 	if((EXTI->PR & EXTI_PR_PR1) != 0){
 		if((TIM2->CR1 & TIM_CR1_CEN) == 0){
@@ -730,7 +727,7 @@ void EXTI0_1_IRQHandler()
 		if((GPIOA->IDR & GPIO_IDR_0) != 0){
 			if (inSig == 0){
 				inSig = 1;
-				EXTI-> IMR &= ~(EXTI_IMR_MR1); /*Disable EXTI1*/
+				EXTI-> IMR &= ~(EXTI_IMR_MR1); /*Disable and EXTI1*/
 				EXTI-> IMR |= EXTI_IMR_MR2; /*Enable EXTI2*/
 				trace_printf("Function generator enabled\n");
 			}
@@ -751,10 +748,6 @@ void EXTI0_1_IRQHandler()
 /* This handler is declared in system/src/cmsis/vectors_stm32f051x8.c */
 void EXTI2_3_IRQHandler()
 {
-	// Declare/initialize your local variables here...
-     count = 0;
-     period = 0;
-     frequency = 0;
 
 	/* Check if EXTI2 interrupt pending flag is indeed set */
 	if ((EXTI->PR & EXTI_PR_PR2) != 0)

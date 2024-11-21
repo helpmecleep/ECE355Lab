@@ -461,7 +461,8 @@ void TIM3_Delay(uint32_t delay){
     TIM3->CR1 |= TIM_CR1_CEN; //start timer
     while((TIM3->SR & TIM_SR_UIF) == 0);  //wait for delay
     TIM3->CR1 &= ~TIM_CR1_CEN; //stop timer
-    
+    TIM3->SR &= ~TIM_SR_UIF; //clear interrupt flag
+
 }
 
 void myADC_Init(){

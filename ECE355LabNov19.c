@@ -1,3 +1,4 @@
+
 // Worked on EXTI0,1 and PA0; October 20th
 // Worked on EXTI0,1, GPIOC, and PA0; October 30th
 // Worked on placing the oled template; October 30th
@@ -329,6 +330,7 @@ int main(int argc, char* argv[])
             res = 5000*adcVal/ADC_SCALE; //convert adc value to voltage
         }
         refresh_OLED();
+        for ( long i = 0; i < 200000; i++ );
 	}
 
 	return 0;
@@ -459,6 +461,7 @@ void TIM3_Delay(uint32_t delay){
     TIM3->CR1 |= TIM_CR1_CEN; //start timer
     while((TIM3->SR & TIM_SR_UIF) == 0);  //wait for delay
     TIM3->CR1 &= ~TIM_CR1_CEN; //stop timer
+    
 }
 
 void myADC_Init(){
@@ -701,9 +704,6 @@ void refresh_OLED( void )
 
 void EXTI0_1_IRQHandler()
 {
-    count = 0;
-    period = 0;
-    frequency = 0;
 	/* Check if EXTI0 interrupt pending flag is indeed set */
 	if((EXTI->PR & EXTI_PR_PR1) != 0){
 		if((TIM2->CR1 & TIM_CR1_CEN) == 0){
@@ -746,10 +746,6 @@ void EXTI0_1_IRQHandler()
 /* This handler is declared in system/src/cmsis/vectors_stm32f051x8.c */
 void EXTI2_3_IRQHandler()
 {
-	// Declare/initialize your local variables here...
-     count = 0;
-     period = 0;
-     frequency = 0;
 
 	/* Check if EXTI2 interrupt pending flag is indeed set */
 	if ((EXTI->PR & EXTI_PR_PR2) != 0)

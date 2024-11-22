@@ -328,10 +328,10 @@ int main(int argc, char* argv[])
             ADC1->ISR |= ADC_ISR_EOC; //clear EOC flag
             adcVal = ADC1->DR; //read adc value
             DAC->DHR12R1 = adcVal; //write adc value to DAC
-            res = 5000*adcVal/ADC_SCALE; //convert adc value to voltage
+            res = 5000*adcVal/ADC_SCALE; //convert adc value to resistance
         }
         refresh_OLED();
-        for ( long i = 0; i < 200000; i++ );
+        //for ( long i = 0; i < 200000; i++ );
 	}
 
 	return 0;
